@@ -1,0 +1,55 @@
+{
+  "compilerOptions": {
+    // Target latest version of ECMAScript
+    "target": "ES2022",
+    // Search under node_modules for non-relative imports
+    "moduleResolution": "node",
+    // Enable strict type checking
+    "strict": true,
+    // Import non-ES modules as default imports
+    "esModuleInterop": true,
+    // Use Node.js module resolution mechanism
+    "module": "CommonJS",
+    // Output directory
+    "outDir": "./dist",
+    // Source map support for debugging
+    "sourceMap": true,
+    // Enable all strict type checking options
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    // Additional checks
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    // Base directory to resolve non-relative module names
+    "baseUrl": ".",
+    // Path aliases for cleaner imports
+    "paths": {
+      "@/*": ["src/*"],
+      "@config/*": ["src/config/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@models/*": ["src/models/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@utils/*": ["src/utils/*"]
+    },
+    // Include type definitions
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    // Additional features
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
+}
