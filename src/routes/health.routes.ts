@@ -1,38 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
-import { HealthService } from '../services/health.service';
-import { AppError } from '../middleware/errorHandler';
+// src/routes/news.routes.ts
 
-export class HealthController {
-  private healthService: HealthService;
+import express from 'express';
+import { NewsController } from '../controllers/news.controller';
 
-  constructor() {
-    this.healthService = new HealthService();
-  }
+const router = express.Router();
+const newsController = new NewsController();
 
-  checkHealth = async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const status = await this.healthService.getStatus();
-      res.json(status);
-    } catch (error) {
-      next(new AppError(500, 'Health check failed'));
-    }
-  };
+// Get news with filters and pagination
+router.get('/', newsController.getNews);
 
-  checkDatabase = async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const dbStatus = await this.healthService.checkDatabase();
-      res.json(dbStatus);
-    } catch (error) {
-      next(new AppError(500, 'Database health check failed'));
-    }
-  };
+// Get specific article by ID
+router.get('/:id', newsController.getArticleById);
 
-  checkRedis = async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const redisStatus = await this.healthService.checkRedis();
-      res.json(redisStatus);
-    } catch (error) {
-      next(new AppError(500, 'Redis health check failed'));
-    }
-  };
-}
+// Get available states
+router.get('/metadata/states', newsController.getStates);
+
+// Get available topics
+router.get('/metadata/topics', newsController.getTopics);
+
+export default router;
