@@ -16,7 +16,6 @@ Backend service for managing and serving legislative news articles, built with N
 - RESTful API endpoints
 - Database migrations and seeding
 - Redis caching layer
-- Health check endpoints
 - Error handling middleware
 - Request filtering and pagination
 - Full-text search capabilities
@@ -160,7 +159,8 @@ npm run lint
 ```
 
 ## Makefile Commands
-```
+
+```bash
 # Start docker compose 
 make up
 
