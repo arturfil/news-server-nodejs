@@ -1,11 +1,14 @@
-// src/services/news.service.ts
-
-import { Pool } from 'pg';
-import { Redis } from 'ioredis';
-import { Article, NewsFilters, PaginationOptions, NewsResponse } from '../types/news.types';
-import { pool } from '../database';
-import { redisClient } from '../cache';
-import { logger } from '../utils/logger';
+import { Pool } from "pg";
+import { Redis } from "ioredis";
+import {
+  Article,
+  NewsFilters,
+  PaginationOptions,
+  NewsResponse,
+} from "../types/news.types";
+import { pool } from "../database";
+import { redisClient } from "../cache";
+import { logger } from "../utils/logger";
 
 export class NewsService {
   private db: Pool;
@@ -17,7 +20,10 @@ export class NewsService {
     this.cache = redisClient;
   }
 
-  private generateCacheKey(filters: NewsFilters, pagination: PaginationOptions): string {
+  private generateCacheKey(
+    filters: NewsFilters,
+    pagination: PaginationOptions,
+  ): string {
     return `news:${JSON.stringify({ ...filters, ...pagination })}`;
   }
 
@@ -73,20 +79,20 @@ export class NewsService {
 
   async getNews(
     filters: NewsFilters = {},
-    pagination: PaginationOptions = { page: 1, limit: 10 }
+    pagination: PaginationOptions = { page: 1, limit: 10 },
   ): Promise<NewsResponse> {
     try {
       const cacheKey = this.generateCacheKey(filters, pagination);
       const cachedResult = await this.cache.get(cacheKey);
 
       if (cachedResult) {
-        logger.info('Cache hit for news query');
+        logger.info("Cache hit for news query");
         return JSON.parse(cachedResult);
       }
 
       const { query: baseQuery, params } = this.buildQuery(filters);
       const offset = (pagination.page - 1) * pagination.limit;
-      
+
       const finalQuery = `
         ${baseQuery}
         ORDER BY published_date DESC
@@ -101,26 +107,26 @@ export class NewsService {
       const totalPages = Math.ceil(total / pagination.limit);
 
       const response: NewsResponse = {
-        articles: articles.map(article => ({
+        articles: articles.map((article) => ({
           ...article,
-          total_count: undefined // Remove the count from individual articles
+          total_count: undefined, // Remove the count from individual articles
         })),
         total,
         page: pagination.page,
         totalPages,
-        hasMore: pagination.page < totalPages
+        hasMore: pagination.page < totalPages,
       };
 
       // Cache the result
       await this.cache.setex(
         cacheKey,
         this.CACHE_TTL,
-        JSON.stringify(response)
+        JSON.stringify(response),
       );
 
       return response;
     } catch (error) {
-      logger.error('Error fetching news:', error);
+      logger.error("Error fetching news:", error);
       throw error;
     }
   }
@@ -136,8 +142,8 @@ export class NewsService {
       }
 
       const result = await this.db.query(
-        'SELECT * FROM articles WHERE id = $1',
-        [id]
+        "SELECT * FROM articles WHERE id = $1",
+        [id],
       );
 
       if (result.rows.length === 0) {
@@ -145,11 +151,7 @@ export class NewsService {
       }
 
       const article = result.rows[0];
-      await this.cache.setex(
-        cacheKey,
-        this.CACHE_TTL,
-        JSON.stringify(article)
-      );
+      await this.cache.setex(cacheKey, this.CACHE_TTL, JSON.stringify(article));
 
       return article;
     } catch (error) {
@@ -160,45 +162,114 @@ export class NewsService {
 
   async getStates(): Promise<string[]> {
     try {
-      const cacheKey = 'states:list';
+      const cacheKey = "states:list";
       const cachedStates = await this.cache.get(cacheKey);
 
       if (cachedStates) {
         return JSON.parse(cachedStates);
       }
 
+      // Query the states table instead of articles
       const result = await this.db.query(
-        'SELECT DISTINCT state FROM articles WHERE state IS NOT NULL ORDER BY state'
+        "SELECT name FROM states ORDER BY name",
       );
-      const states = result.rows.map(row => row.state);
+      const states = result.rows.map((row) => row.name);
 
       await this.cache.setex(cacheKey, this.CACHE_TTL, JSON.stringify(states));
       return states;
     } catch (error) {
-      logger.error('Error fetching states:', error);
+      logger.error("Error fetching states:", error);
       throw error;
     }
   }
 
   async getTopics(): Promise<string[]> {
     try {
-      const cacheKey = 'topics:list';
+      const cacheKey = "topics:list";
       const cachedTopics = await this.cache.get(cacheKey);
 
       if (cachedTopics) {
         return JSON.parse(cachedTopics);
       }
 
+      // Query the topics table instead of articles
       const result = await this.db.query(
-        'SELECT DISTINCT topic FROM articles WHERE topic IS NOT NULL ORDER BY topic'
+        "SELECT name FROM topics ORDER BY name",
       );
-      const topics = result.rows.map(row => row.topic);
+      const topics = result.rows.map((row) => row.name);
 
       await this.cache.setex(cacheKey, this.CACHE_TTL, JSON.stringify(topics));
       return topics;
     } catch (error) {
-      logger.error('Error fetching topics:', error);
+      logger.error("Error fetching topics:", error);
       throw error;
+    }
+  }
+
+  async updateArticle(
+    id: number,
+    updates: Partial<Article>,
+  ): Promise<Article | null> {
+    const client = await this.db.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Build the update query dynamically based on provided fields
+      const updateFields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      // Only allow updating specific fields
+      const allowedFields = ["title", "content", "summary", "state", "topic"];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key) && value !== undefined) {
+          updateFields.push(`${key} = $${paramIndex}`);
+          values.push(value);
+          paramIndex++;
+        }
+      }
+
+      if (updateFields.length === 0) {
+        throw new Error("No valid fields to update");
+      }
+
+      // Add updated_at timestamp
+      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+
+      const query = `
+        UPDATE articles 
+        SET ${updateFields.join(", ")}
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `;
+
+      const result = await client.query(query, [...values, id]);
+      await client.query("COMMIT");
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const updatedArticle = result.rows[0];
+
+      // Invalidate caches
+      const cacheKey = `article:${id}`;
+      await this.cache.del(cacheKey);
+
+      // Invalidate list caches
+      const keys = await this.cache.keys("news:*");
+      if (keys.length > 0) {
+        await this.cache.del(keys);
+      }
+
+      return updatedArticle;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      logger.error(`Error updating article ${id}:`, error);
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

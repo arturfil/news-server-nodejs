@@ -4,7 +4,7 @@ export interface Article {
   id: number;
   title: string;
   content: string;
-  summary: string | null;
+  description: string | null;
   state: string;
   topic: string;
   published_date: Date;

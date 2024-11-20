@@ -83,4 +83,48 @@ export class NewsController {
       next(error);
     }
   };
+
+  updateArticle = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const articleId = parseInt(req.params.id);
+      
+      if (isNaN(articleId)) {
+        throw new AppError(400, 'Invalid article ID');
+      }
+
+      // Validate required fields
+      const { title, content, description, state, topic } = req.body;
+      
+      if (!title && !content && !description && !state && !topic) {
+        throw new AppError(400, 'No valid fields provided for update');
+      }
+
+      // Validate field lengths
+      if (title && (title.length < 5 || title.length > 255)) {
+        throw new AppError(400, 'Title must be between 5 and 255 characters');
+      }
+
+      if (content && content.length < 10) {
+        throw new AppError(400, 'Content must be at least 10 characters');
+      }
+
+      const updatedArticle = await this.newsService.updateArticle(articleId, {
+        title,
+        content,
+        description,
+        state,
+        topic
+      });
+      
+      if (!updatedArticle) {
+        throw new AppError(404, 'Article not found');
+      }
+
+      res.json(updatedArticle);
+    } catch (error) {
+      logger.error('Error in updateArticle controller:', error);
+      next(error);
+    }
+  }; 
+
 }

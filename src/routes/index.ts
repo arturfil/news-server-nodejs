@@ -1,11 +1,9 @@
-import express, { Router } from 'express';
-import { HealthController } from '../controllers/health.controller';
+import express from 'express';
+import newsRoutes from './news.rotues';
+import adminRoute from './admin.routes';
 
-const router:Router = express.Router();
-const healthController = new HealthController();
-
-router.get('/', healthController.checkHealth);
-router.get('/db', healthController.checkDatabase);
-router.get('/redis', healthController.checkRedis);
+const router = express.Router();
+router.use('/news', newsRoutes)
+router.use("/admin", adminRoute)
 
 export default router;

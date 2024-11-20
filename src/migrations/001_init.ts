@@ -1,23 +1,24 @@
-import { pool } from '../database';
-import { logger } from '../utils/logger';
+import { pool } from "../database";
+import { logger } from "../utils/logger";
 
 async function initializeTables() {
   const client = await pool.connect();
-  
+
   try {
-    await client.query('BEGIN');
-    
+    await client.query("BEGIN");
+
     // Create articles table
     await client.query(`
       CREATE TABLE IF NOT EXISTS articles (
         id SERIAL PRIMARY KEY,
+        encoded_id VARCHAR(255),
         title VARCHAR(255) NOT NULL,
         content TEXT NOT NULL,
-        summary TEXT,
+        description TEXT,
         state VARCHAR(50),
         topic VARCHAR(50),
         published_date TIMESTAMP,
-        source_url TEXT,
+        url TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -138,11 +139,11 @@ async function initializeTables() {
       ON CONFLICT (name) DO NOTHING;
     `);
 
-    await client.query('COMMIT');
-    logger.info('Successfully initialized database tables');
+    await client.query("COMMIT");
+    logger.info("Successfully initialized database tables");
   } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('Error initializing database:', error);
+    await client.query("ROLLBACK");
+    logger.error("Error initializing database:", error);
     throw error;
   } finally {
     client.release();
@@ -152,10 +153,10 @@ async function initializeTables() {
 // Execute the initialization
 initializeTables()
   .then(() => {
-    logger.info('Database initialization completed');
+    logger.info("Database initialization completed");
     process.exit(0);
   })
   .catch((error) => {
-    logger.error('Database initialization failed:', error);
+    logger.error("Database initialization failed:", error);
     process.exit(1);
   });

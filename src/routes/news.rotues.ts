@@ -14,6 +14,9 @@ router.get('/:id', newsController.getArticleById);
 
 // Get available states
 router.get('/metadata/states', newsController.getStates);
+//
+// Update article by ID
+router.put('/:id', newsController.updateArticle);
 
 // Get available topics
 router.get('/metadata/topics', newsController.getTopics);

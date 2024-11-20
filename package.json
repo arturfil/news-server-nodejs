@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node -r tsconfig-paths/register dist/index.js",
+    "db.rollback": "ts-node -r tsconfig-paths/register src/migrations/rollback.ts all",
     "seed": "ts-node -r  tsconfig-paths/register src/migrations/002_seed.ts",
     "init": "ts-node -r  tsconfig-paths/register src/migrations/001_init.ts",
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
